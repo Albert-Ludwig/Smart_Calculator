@@ -28,6 +28,16 @@ import os
 import re
 
 path = r"C:\Users\Administrator\Downloads\BRHelp#4\BRHelp"
+<<<<<<< HEAD
+=======
+=======
+path = r"C:\Users\Administrator\Downloads\BRHelp#4\BRHelp"
+<<<<<<< HEAD
+# hello world
+>>>>>>> 7c0571e (临时保存更改)
+=======
+>>>>>>> 19bf39a (完整版)
+>>>>>>> a45c2a2 (完整版)
 
 for root, dirs, files in os.walk(path, topdown=False):
     for name in files:
