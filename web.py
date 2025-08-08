@@ -111,7 +111,7 @@ class MainApplication:
         upload_btn = tk.Button(
             button_frame,
             text="上传文件",
-            command=self.upload_file,
+            command=self.upload_file,  
             bg="#3498db",
             fg="white",
             font=("微软雅黑", 10),
@@ -123,19 +123,6 @@ class MainApplication:
         upload_btn.pack(pady=15)
         
         # 第二个按钮（示例）
-        process_btn = tk.Button(
-            button_frame,
-            text="处理数据",
-            command=self.process_data,
-            bg="#2ecc71",
-            fg="white",
-            font=("微软雅黑", 10),
-            padx=15,
-            pady=8,
-            width=15,
-            relief=tk.FLAT
-        )
-        process_btn.pack(pady=15)
         
         # 分隔线
         separator = tk.Frame(button_frame, height=2, bg="#2c3e50")
@@ -238,7 +225,7 @@ class MainApplication:
             max_size = (600, 600)
             map_image.thumbnail(max_size, Image.Resampling.LANCZOS)
             map_photo = ImageTk.PhotoImage(map_image)
-            map_label = tk.Label(content_frame, image=map_photo, bg="white")
+            map_label = tk.Label(content_frame, image=map_photo, bg="white") 
             map_label.image = map_photo  # 保持对图像的引用
             map_label.pack(pady=10)
         except Exception as e:
