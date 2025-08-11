@@ -24,7 +24,7 @@ class ScientificCalculator:
             widget.destroy()
         
         # 配置网格
-        for i in range(7):
+        for i in range(8):  # 行数+1 因为多了一行
             self.root.rowconfigure(i, weight=1)
         for i in range(4):
             self.root.columnconfigure(i, weight=1)
@@ -37,7 +37,7 @@ class ScientificCalculator:
         )
         display.grid(row=0, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
         
-        # 添加科学计算按钮
+        # 科学计算切换按钮
         sci_button = tk.Button(
             self.root, text="科学计算", font=("Arial", 12),
             command=self.show_scientific_calculator,
@@ -47,29 +47,26 @@ class ScientificCalculator:
         sci_button.bind("<Enter>", lambda e: e.widget.config(bg="#ffaa33"))
         sci_button.bind("<Leave>", lambda e: e.widget.config(bg="#ff9900"))
         
-        # 基础计算器按钮布局
+        # 新的基础布局：加入 ( ) ，0 为普通大小，“=” 单独一行加宽
         button_layout = [
             ['C', '√', '^', '/'],
             ['7', '8', '9', '*'],
             ['4', '5', '6', '-'],
             ['1', '2', '3', '+'],
-            ['0', '.', '=']
+            ['(', '0', ')', '.'],
+            ['=']  # 单独一行
         ]
         
-        # 创建基础计算器按钮
         for row_idx, row in enumerate(button_layout):
             for col_idx, text in enumerate(row):
                 btn = self.create_button(
-                    text, row_idx+2, col_idx, 
-                    bg="#ff9999" if text in ('C', '√', '^') else "SystemButtonFace",
-                    fg="black"
+                    text, row_idx + 2, col_idx,
+                    bg="#ff9999" if text in ('C', '√', '^') else ("#4d94ff" if text == "=" else "SystemButtonFace"),
+                    fg="white" if text in ('C', '√', '^', '=') else "black"
                 )
-                
-                # 特殊按钮处理
-                if text == "0":
-                    btn.grid(columnspan=2, sticky="nsew")
-                elif text == "=":
-                    btn.config(bg="#4d94ff", fg="white")
+                # “=” 按钮单独一行跨 4 列
+                if text == "=":
+                    btn.grid(row=row_idx + 2, column=0, columnspan=4, sticky="nsew", padx=2, pady=2)
     
     def show_scientific_calculator(self):
         """显示科学计算器界面"""
@@ -179,15 +176,15 @@ class ScientificCalculator:
         """处理所有按钮点击事件"""
         current = self.display_var.get()
         
-        # 特殊功能处理[1,2](@ref)
+        # 特殊功能处理
         if value == "C":
             self.display_var.set("")
-        elif value == "⌫":  # 删除最后一个字符
+        elif value == "⌫":
             self.display_var.set(current[:-1])
-        elif value == "←":  # 返回基础计算器
+        elif value == "←":
             self.create_basic_calculator()
             return
-        elif value == "±":  # 正负号切换
+        elif value == "±":
             if current.startswith('-'):
                 self.display_var.set(current[1:])
             else:
@@ -208,17 +205,24 @@ class ScientificCalculator:
                 self.display_var.set(str(math.factorial(num)))
             except:
                 self.display_var.set("错误")
-        # 三角函数处理（添加函数名和括号）[1,5](@ref)
+        elif value == "√":  # 新增：平方根处理
+            # 情况1：当前为空或最后是运算符/左括号 → 追加一个函数起始
+            if (not current) or current[-1] in "+-*/([{" :
+                self.display_var.set(current + "sqrt(")
+            else:
+                # 情况2：把当前整体包进 sqrt(...)
+                self.display_var.set(f"sqrt({current})")
+            return
         elif value in ('sin', 'cos', 'tan', 'log', 'ln'):
             self.display_var.set(f"{value}({current})")
         elif value == "=":
             try:
-                # 安全替换数学函数
                 safe_expr = current.replace("^", "**")
                 safe_expr = safe_expr.replace("π", "3.1415926535")
                 safe_expr = safe_expr.replace("e", "2.7182818284")
-                
-                # 创建安全的计算环境[1](@ref)
+                # 兜底：如果还有 ‘√’ 直接替换成 sqrt
+                safe_expr = safe_expr.replace("√", "sqrt")
+
                 namespace = {
                     "__builtins__": None,
                     "sin": math.sin,
@@ -229,39 +233,25 @@ class ScientificCalculator:
                     "sqrt": math.sqrt,
                     "exp": math.exp
                 }
-                
-                # 根据角度模式调整三角函数[2,3,5](@ref)
+
                 if self.degree_mode:
-                    # 角度模式下，将三角函数参数转换为弧度
-                    def deg_to_rad_wrapper(func):
-                        def wrapper(x):
-                            # 先将输入值转换为弧度（角度转弧度公式：rad = deg * π / 180）
-                            radians = math.radians(x)
-                            return func(radians)
-                        return wrapper
-                    
-                    # 应用包装器
-                    namespace["sin"] = deg_to_rad_wrapper(math.sin)
-                    namespace["cos"] = deg_to_rad_wrapper(math.cos)
-                    namespace["tan"] = deg_to_rad_wrapper(math.tan)
-                
-                # 使用eval计算表达式
+                    def wrap(func):
+                        def inner(x):
+                            return func(math.radians(x))
+                        return inner
+                    namespace["sin"] = wrap(math.sin)
+                    namespace["cos"] = wrap(math.cos)
+                    namespace["tan"] = wrap(math.tan)
+
                 result = eval(safe_expr, {}, namespace)
-                
-                # 格式化结果（保留最多8位小数，移除不必要的零）
-                formatted_result = f"{result:.8f}".rstrip('0').rstrip('.')
-                if '.' in formatted_result:
-                    self.display_var.set(formatted_result)
-                else:
-                    self.display_var.set(str(int(result)))
-            except Exception as e:
+                formatted = f"{result:.8f}".rstrip('0').rstrip('.')
+                self.display_var.set(formatted if '.' in formatted else str(int(result)))
+            except Exception:
                 self.display_var.set("错误")
         else:
-            # 防止连续运算符[1](@ref)
             if value in ('+', '-', '*', '/') and current and current[-1] in ('+', '-', '*', '/'):
                 return
-            # 防止多个小数点
-            if value == '.' and '.' in current.split()[-1] if current else False:
+            if value == '.' and (current and '.' in current.split()[-1]):
                 return
             self.display_var.set(current + value)
 
