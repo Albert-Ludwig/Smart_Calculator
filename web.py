@@ -58,7 +58,7 @@ class ScientificCalculator:
             for col_idx, text in enumerate(row):
                 btn = self.create_button(
                     text, row_idx+2, col_idx, 
-                    bg="#f2f2f2" if text in ('C', '√', '^') else "SystemButtonFace"
+                    bg="#ec7e7e" if text in ('C', '√', '^') else "SystemButtonFace"
                 )
                 
                 # 特殊按钮处理
