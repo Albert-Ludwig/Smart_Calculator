@@ -1,239 +1,98 @@
 import tkinter as tk
-import time
-from tkinter import filedialog, messagebox
+import math
+# 创建主窗口
+root = tk.Tk()
+root.title("计算器")
+root.geometry("600x500")  # 设置窗口大小
 
-class MainApplication:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("系统控制面板")
-        self.root.geometry("1280x720")
-        self.root.resizable(False, False)  # 固定窗口大小
-        
-        # 创建三个主要区域
-        self.create_info_bar()
-        self.create_main_interface()
-        self.create_button_panel()
-        
-        # 启动时间更新
-        self.update_time()
-    
-    def create_info_bar(self):
-        """创建顶部信息显示栏"""
-        info_frame = tk.Frame(self.root, bg="#2c3e50", height=50)
-        info_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        
-        # 日期和时间标签
-        self.date_label = tk.Label(
-            info_frame, 
-            text="日期: 加载中...", 
-            fg="white", 
-            bg="#2c3e50",
-            font=("微软雅黑", 10)
-        )
-        self.date_label.pack(side=tk.LEFT, padx=20)
-        
-        self.time_label = tk.Label(
-            info_frame, 
-            text="时间: 加载中...", 
-            fg="white", 
-            bg="#2c3e50",
-            font=("微软雅黑", 10, "bold")
-        )
-        self.time_label.pack(side=tk.LEFT, padx=10)
-        
-        # 状态信息
-        self.status_label = tk.Label(
-            info_frame, 
-            text="系统状态: 就绪", 
-            fg="#1abc9c", 
-            bg="#2c3e50",
-            font=("微软雅黑", 10)
-        )
-        self.status_label.pack(side=tk.RIGHT, padx=20)
-    
-    def create_main_interface(self):
-        """创建主界面区域"""
-        main_frame = tk.Frame(self.root, bg="#ecf0f1")
-        main_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=(0, 5))
-        
-        # 主界面标题
-        title_label = tk.Label(
-            main_frame, 
-            text="主控制面板", 
-            font=("微软雅黑", 16, "bold"), 
-            bg="#ecf0f1",
-            pady=20
-        )
-        title_label.pack(fill=tk.X)
-        
-        # 内容区域（可扩展）
-        content_frame = tk.Frame(main_frame, bg="white", bd=1, relief=tk.SUNKEN)
-        content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-        
-        # 示例内容
-        info_text = (
-            "欢迎使用系统控制面板\n\n"
-            "此区域用于显示主要内容和操作结果\n"
-            "• 上传的文件将在此处显示详细信息\n"
-            "• 系统状态信息可在此查看\n"
-            "• 支持多种数据可视化展示\n\n"
-            "请使用右侧操作栏开始工作"
-        )
-        
-        content_label = tk.Label(
-            content_frame, 
-            text=info_text, 
-            font=("微软雅黑", 12), 
-            bg="white",
-            justify=tk.LEFT,
-            padx=20,
-            pady=20
-        )
-        content_label.pack(anchor=tk.NW)
-    
-    def create_button_panel(self):
-        """创建右侧按钮操作栏"""
-        button_frame = tk.Frame(self.root, bg="#34495e", width=200)
-        button_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 5), pady=(0, 5))
-        
-        # 标题
-        panel_title = tk.Label(
-            button_frame, 
-            text="操作面板", 
-            font=("微软雅黑", 12, "bold"), 
-            fg="white", 
-            bg="#34495e",
-            pady=15
-        )
-        panel_title.pack(fill=tk.X)
-        
-        # 上传文件按钮
-        upload_btn = tk.Button(
-            button_frame,
-            text="上传文件",
-            command=self.upload_file,  
-            bg="#3498db",
-            fg="white",
-            font=("微软雅黑", 10),
-            padx=15,
-            pady=8,
-            width=15,
-            relief=tk.FLAT
-        )
-        upload_btn.pack(pady=15)
-        
-        # 第二个按钮（示例）
-        
-        # 分隔线
-        separator = tk.Frame(button_frame, height=2, bg="#2c3e50")
-        separator.pack(fill=tk.X, pady=20)
-        
-        # 系统操作按钮
-        exit_btn = tk.Button(
-            button_frame,
-            text="退出系统",
-            command=self.exit_application,
-            bg="#e74c3c",
-            fg="white",
-            font=("微软雅黑", 10),
-            padx=15,
-            pady=8,
-            width=15,
-            relief=tk.FLAT
-        )
-        exit_btn.pack(pady=15)
-    
-    def update_time(self):
-        """更新时间显示"""
-        current_time = time.strftime("%H:%M:%S")
-        current_date = time.strftime("%Y年%m月%d日")
-        
-        self.time_label.config(text=f"时间: {current_time}")
-        self.date_label.config(text=f"日期: {current_date}")
-        
-        # 每秒更新一次时间
-        self.root.after(1000, self.update_time)
-    
-    def upload_file(self):
-        """上传文件功能"""
-        file_path = filedialog.askopenfilename(
-            title="选择文件",
-            filetypes=[("所有文件", "*.*"), ("文本文件", "*.txt"), ("图像文件", "*.jpg *.png")]
-        )
-        
-        if file_path:
-            self.status_label.config(text=f"系统状态: 已选择文件 - {file_path.split('/')[-1]}")
-            messagebox.showinfo("上传成功", f"文件已成功加载:\n{file_path}")
+# 创建显示屏 - 用于显示输入和结果
+display = tk.Entry(root, font=("Arial", 20), bd=10, width=18, borderwidth=4)
+display.grid(row=0, column=0, columnspan=8)  # 跨8列显示
+
+# 按钮布局定义
+buttons = [
+    '7', '8', '9', '/',
+    '4', '5', '6', '*',
+    '1', '2', '3', '-',
+    '0', '.', '=', '+'
+]
+buttons.append('√')
+buttons.append('^')
+
+# 动态创建按钮
+row_val = 1
+col_val = 0
+for button in buttons:
+    def cmd(x=button):  # 闭包保存当前按钮值
+        current = display.get()
+        if x == "=":
+            try:
+                result = eval(current)  # 执行计算
+                display.delete(0, tk.END)
+                display.insert(0, str(result))
+            except:
+                display.delete(0, tk.END)
+                display.insert(0, "错误")
         else:
-            self.status_label.config(text="系统状态: 文件选择已取消")
-    
-    def process_data(self):
-        """处理数据功能（示例）"""
-        self.status_label.config(text="系统状态: 数据处理中...")
-        self.root.after(2000, lambda: self.status_label.config(text="系统状态: 数据处理完成"))
-    
-    def exit_application(self):
-        """退出应用程序"""
-        if messagebox.askyesno("退出确认", "确定要退出系统吗？"):
-            self.root.destroy()
-    def create_main_interface(self):
-        """创建主界面区域"""
-        main_frame = tk.Frame(self.root, bg="#ecf0f1")
-        main_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=(0, 5))
-    
-        # 主界面标题
-        title_label = tk.Label(
-            main_frame, 
-            text="主控制面板", 
-            font=("微软雅黑", 16, "bold"), 
-            bg="#ecf0f1",
-            pady=20
-        )
-        title_label.pack(fill=tk.X)
-    
-        # 内容区域（可扩展）
-        content_frame = tk.Frame(main_frame, bg="white", bd=1, relief=tk.SUNKEN)
-        content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-        
-        # 示例内容
-        info_text = (
-            "欢迎使用系统控制面板\n\n"
-            "此区域用于显示主要内容和操作结果\n"
-            "• 上传的文件将在此处显示详细信息\n"
-            "• 系统状态信息可在此查看\n"
-            "• 支持多种数据可视化展示\n\n"
-            "请使用右侧操作栏开始工作"
-        )
-        
-        content_label = tk.Label(
-            content_frame, 
-            text=info_text, 
-            font=("微软雅黑", 12), 
-            bg="white",
-            justify=tk.LEFT,
-            padx=20,
-            pady=20
-        )
-        content_label.pack(anchor=tk.NW)
-        
-        # 添加地图显示（示例，需安装 Pillow 包）
-        try:
-            from PIL import Image, ImageTk
-            # 请将以下路径替换为你实际的地图图片路径
-            map_image = Image.open(r"C:/Users/Administrator/Pictures/照片/芙宁娜.png")
-            # 设置最大尺寸, 等比例缩小图片
-            max_size = (600, 600)
-            map_image.thumbnail(max_size, Image.Resampling.LANCZOS)
-            map_photo = ImageTk.PhotoImage(map_image)
-            map_label = tk.Label(content_frame, image=map_photo, bg="white") 
-            map_label.image = map_photo  # 保持对图像的引用
-            map_label.pack(pady=10)
-        except Exception as e:
-            error_label = tk.Label(content_frame, text=f"地图加载失败: {e}", fg="red", bg="white")
-            error_label.pack(pady=10)
+            display.insert(tk.END, x)  # 追加输入
 
+    # 创建按钮并绑定事件
+    tk.Button(
+        root, text=button, 
+        padx=20, pady=20, font=("Arial", 15),
+        command=cmd
+    ).grid(row=row_val, column=col_val)
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = MainApplication(root)
-    root.mainloop()
+    # 更新网格位置
+    col_val += 1
+    if col_val > 3:
+        col_val = 0
+        row_val += 1
+
+def clear():
+    display.delete(0, tk.END)
+
+tk.Button(
+    root, text="C", padx=20, pady=20, 
+    font=("Arial", 15), command=clear
+).grid(row=0, column=0, columnspan=1)
+
+# 修改按钮命令函数
+def cmd(x=button):
+    current = display.get()
+    if x in ('+', '-', '*', '/'):
+        if current and current[-1] in ('+', '-', '*', '/'):  # 检查最后一个字符
+            return  # 阻止连续输入运算符
+    if x == '.':
+        if '.' in current.split()[-1]:  # 检查当前数字是否已有小数点
+            return
+    try:
+        result = eval(current)
+    except ZeroDivisionError:
+        display.delete(0, tk.END)
+        display.insert(0, "除零错误")
+    if x == "√":
+        try:    
+            num = float(display.get())
+            display.delete(0, tk.END)
+            display.insert(0, str(math.sqrt(num)))
+        except:
+            display.insert(0, "错误")
+    elif x == "^":
+        display.insert(tk.END, "**")  # Python幂运算符
+
+# 设置按钮悬停效果
+def on_enter(e):
+    e.widget['bg'] = '#d9d9d9'  # 浅灰色
+
+def on_leave(e):
+    e.widget['bg'] = 'SystemButtonFace'  # 恢复默认
+
+# 创建按钮时绑定事件
+btn = tk.Button(root, text="测试")
+btn.bind("<Enter>", on_enter)
+btn.bind("<Leave>", on_leave)
+btn.grid(row=row_val+1, column=0)
+
+# 最后执行主循环
+root.mainloop()
