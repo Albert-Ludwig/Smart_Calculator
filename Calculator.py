@@ -82,8 +82,8 @@ class ScientificCalculator:
             for col_idx, text in enumerate(row):
                 btn = self.create_button(
                     text, row_idx + start_row, col_idx,
-                    bg="#ff9999" if text in ('C', '√', '^') else ("#4d94ff" if text == "=" else "SystemButtonFace"),
-                    fg="white" if text in ('C', '√', '^', '=') else "black"
+                    bg="#ff9999" if text in ('C') else ("#4d94ff" if text == "=" else "SystemButtonFace"),
+                    fg="white" if text in ('C','=') else "black"
                 )
                 # "=" 按钮单独一行跨4列
                 if text == "=":
