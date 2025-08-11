@@ -1,98 +1,99 @@
 import tkinter as tk
 import math
+
 # 创建主窗口
 root = tk.Tk()
-root.title("计算器")
-root.geometry("600x500")  # 设置窗口大小
+root.title("高级计算器")
+root.geometry("400x500")  # 设置窗口大小
+root.configure(bg="#f0f0f0")  # 设置背景色
 
-# 创建显示屏 - 用于显示输入和结果
-display = tk.Entry(root, font=("Arial", 20), bd=10, width=18, borderwidth=4)
-display.grid(row=0, column=0, columnspan=8)  # 跨8列显示
+# 配置网格行和列的权重，使按钮随窗口缩放[6,7](@ref)
+for i in range(7):
+    root.rowconfigure(i, weight=1)
+for i in range(4):
+    root.columnconfigure(i, weight=1)
 
-# 按钮布局定义
-buttons = [
-    '7', '8', '9', '/',
-    '4', '5', '6', '*',
-    '1', '2', '3', '-',
-    '0', '.', '=', '+'
-]
-buttons.append('√')
-buttons.append('^')
+# 创建显示屏 - 使用StringVar实现动态更新[2,3](@ref)
+display_var = tk.StringVar()
+display = tk.Entry(root, textvariable=display_var, font=("Arial", 24), 
+                   bd=10, relief=tk.SUNKEN, justify=tk.RIGHT, bg="#e6f2ff")
+display.grid(row=0, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
 
-# 动态创建按钮
-row_val = 1
-col_val = 0
-for button in buttons:
-    def cmd(x=button):  # 闭包保存当前按钮值
-        current = display.get()
-        if x == "=":
-            try:
-                result = eval(current)  # 执行计算
-                display.delete(0, tk.END)
-                display.insert(0, str(result))
-            except:
-                display.delete(0, tk.END)
-                display.insert(0, "错误")
-        else:
-            display.insert(tk.END, x)  # 追加输入
-
-    # 创建按钮并绑定事件
-    tk.Button(
-        root, text=button, 
-        padx=20, pady=20, font=("Arial", 15),
-        command=cmd
-    ).grid(row=row_val, column=col_val)
-
-    # 更新网格位置
-    col_val += 1
-    if col_val > 3:
-        col_val = 0
-        row_val += 1
-
-def clear():
-    display.delete(0, tk.END)
-
-tk.Button(
-    root, text="C", padx=20, pady=20, 
-    font=("Arial", 15), command=clear
-).grid(row=0, column=0, columnspan=1)
-
-# 修改按钮命令函数
-def cmd(x=button):
-    current = display.get()
-    if x in ('+', '-', '*', '/'):
-        if current and current[-1] in ('+', '-', '*', '/'):  # 检查最后一个字符
-            return  # 阻止连续输入运算符
-    if x == '.':
-        if '.' in current.split()[-1]:  # 检查当前数字是否已有小数点
-            return
-    try:
-        result = eval(current)
-    except ZeroDivisionError:
-        display.delete(0, tk.END)
-        display.insert(0, "除零错误")
-    if x == "√":
-        try:    
-            num = float(display.get())
-            display.delete(0, tk.END)
-            display.insert(0, str(math.sqrt(num)))
+# 按钮命令处理函数
+def button_click(value):
+    current = display_var.get()
+    
+    # 处理特殊功能按钮[1,4](@ref)
+    if value == "C":
+        display_var.set("")
+    elif value == "=":
+        try:
+            # 使用eval计算表达式[1](@ref)
+            result = eval(current)
+            display_var.set(str(result))
+        except Exception as e:
+            display_var.set("错误")
+    elif value == "√":
+        try:
+            num = float(current)
+            display_var.set(str(math.sqrt(num)))
         except:
-            display.insert(0, "错误")
-    elif x == "^":
-        display.insert(tk.END, "**")  # Python幂运算符
+            display_var.set("错误")
+    elif value == "^":
+        display_var.set(current + "**")
+    else:
+        # 防止连续运算符[1,3](@ref)
+        if value in ('+', '-', '*', '/') and current and current[-1] in ('+', '-', '*', '/'):
+            return
+        # 防止多个小数点[1](@ref)
+        if value == '.' and '.' in current.split()[-1] if current else False:
+            return
+        display_var.set(current + value)
 
-# 设置按钮悬停效果
+# 按钮悬停效果[3](@ref)
 def on_enter(e):
-    e.widget['bg'] = '#d9d9d9'  # 浅灰色
+    e.widget.config(bg="#d9d9d9")
 
 def on_leave(e):
-    e.widget['bg'] = 'SystemButtonFace'  # 恢复默认
+    e.widget.config(bg="SystemButtonFace")
 
-# 创建按钮时绑定事件
-btn = tk.Button(root, text="测试")
-btn.bind("<Enter>", on_enter)
-btn.bind("<Leave>", on_leave)
-btn.grid(row=row_val+1, column=0)
+# 定义按钮布局 - 使用二维列表清晰组织[2,4](@ref)
+button_layout = [
+    ['C', '√', '^', '/'],
+    ['7', '8', '9', '*'],
+    ['4', '5', '6', '-'],
+    ['1', '2', '3', '+'],
+    ['0', '.', '=', '']
+]
+
+# 创建按钮并布局
+for row_idx, row in enumerate(button_layout):
+    for col_idx, text in enumerate(row):
+        if text:  # 跳过空按钮位置
+            btn = tk.Button(root, text=text, font=("Arial", 18), 
+                            command=lambda t=text: button_click(t),
+                            padx=10, pady=10, bd=2, relief=tk.RAISED)
+            
+            # 特殊按钮样式[5](@ref)
+            if text == "=":
+                btn.config(bg="#4d94ff", fg="white")
+            elif text in ('C', '√', '^'):
+                btn.config(bg="#f2f2f2")
+            
+            # 按钮布局 - 使用sticky="nsew"填满单元格[6,7](@ref)
+            if text == "0":  # 0按钮跨两列
+                btn.grid(row=row_idx+1, column=col_idx, columnspan=2, 
+                         padx=5, pady=5, sticky="nsew")
+            elif text == "=":  # =按钮跨两行
+                btn.grid(row=row_idx+1, column=col_idx, rowspan=2, 
+                         padx=5, pady=5, sticky="nsew")
+            else:
+                btn.grid(row=row_idx+1, column=col_idx, 
+                         padx=5, pady=5, sticky="nsew")
+            
+            # 绑定悬停效果
+            btn.bind("<Enter>", on_enter)
+            btn.bind("<Leave>", on_leave)
 
 # 最后执行主循环
 root.mainloop()
