@@ -1,6 +1,5 @@
 import tkinter as tk
 import math
-from tkinter import messagebox, scrolledtext
 
 class ScientificCalculator:
     def __init__(self, root):
@@ -21,7 +20,7 @@ class ScientificCalculator:
         self.max_history = 20  # 最大历史记录数
 
          # 新增：历史面板与模式状态初始化
-        self.is_scientific = False
+        self.is_scientific = False 
         self.history_frame = None
         self.history_text = None
         self.history_visible = False
