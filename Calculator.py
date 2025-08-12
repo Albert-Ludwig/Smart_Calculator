@@ -1,6 +1,10 @@
 import tkinter as tk
 import math
 import re
+import numpy as np
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from tkinter import messagebox
 
 class ScientificCalculator:
     def __init__(self, root):
@@ -25,6 +29,14 @@ class ScientificCalculator:
         self.history_frame = None
         self.history_text = None
         self.history_visible = False
+
+        #函数图像
+        self.plot_frame = None
+        self.plot_canvas = None
+        self.plot_ax = None
+        self.plot_func_entry = None
+        self.plot_range_entry = None
+        self.plot_visible = False
         
         # 创建主计算器界面
         self.create_basic_calculator()
@@ -74,6 +86,14 @@ class ScientificCalculator:
         history_button.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
         history_button.bind("<Enter>", lambda e: e.widget.config(bg="#b350c5"))
         history_button.bind("<Leave>", lambda e: e.widget.config(bg="#9c27b0"))
+
+        #函数图像按钮
+        plot_button = tk.Button(
+            button_frame, text="函数图像", font=("Arial", 12),
+            command=self.show_plot_panel,
+            bg="#4caf50", fg="white", relief=tk.RAISED
+        )
+        plot_button.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
         
         # 基础计算器按钮布局
         button_layout = [
@@ -146,6 +166,12 @@ class ScientificCalculator:
         history_button.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
         history_button.bind("<Enter>", lambda e: e.widget.config(bg="#b350c5"))
         history_button.bind("<Leave>", lambda e: e.widget.config(bg="#9c27b0"))
+        plot_button = tk.Button(
+            button_frame, text="函数图像", font=("Arial", 12),
+            command=self.show_plot_panel,
+            bg="#4caf50", fg="white", relief=tk.RAISED
+        )
+        plot_button.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
         
         # 角度/弧度模式标签
         self.mode_label = tk.Label(
@@ -224,18 +250,30 @@ class ScientificCalculator:
             if isinstance(widget, tk.Button) and widget.cget("text") in ("DEG", "RAD"):
                 widget.config(text="RAD" if self.degree_mode else "DEG")
     
-    def add_to_history(self, expression, result):
+    def add_to_history(self, expression, result=None):
         """添加记录到历史记录"""
         # 限制历史记录数量
         if len(self.history) >= self.max_history:
             self.history.pop(0)
-        
-        # 添加新记录
-        self.history.append(f"{expression} = {result}")
+        if result is None:
+            self.history.append(expression)
+        else:
+            self.history.append(f"{expression} = {result}")
+        self.refresh_history_panel()
+    
+    def refresh_history_panel(self):
+        """如果历史面板已展开，则刷新显示"""
+        if self.history_visible and self.history_text and self.history_text.winfo_exists():
+            self.history_text.config(state=tk.NORMAL)
+            self.history_text.delete(1.0, tk.END)
+            for entry in reversed(self.history):
+                self.history_text.insert(tk.END, entry + "\n")
+            self.history_text.config(state=tk.DISABLED)
         
     def resize_to_fit(self, min_w=380, min_h=520, extra_pad=(10, 10)):
         """根据当前布局自动调整窗口大小"""
         self.root.update_idletasks()  # 刷新布局计算
+        self.root.minsize(min_w, min_h) #最小尺寸
         w = max(self.root.winfo_reqwidth(), min_w) + extra_pad[0]
         h = max(self.root.winfo_reqheight(), min_h) + extra_pad[1]
         self.root.geometry(f"{w}x{h}")
@@ -316,11 +354,115 @@ class ScientificCalculator:
         self.history_visible = True
         # 展开后自适应
         self.resize_to_fit()
+
+        # 若历史展开且图像面板也展开，再调整
+        if self.plot_visible:
+            self.resize_to_fit()
+        # ...existing code...
+    def show_plot_panel(self):
+        """展开/收起函数图像面板"""
+        if self.plot_visible and self.plot_frame and self.plot_frame.winfo_exists():
+            self.plot_frame.destroy()
+            self.plot_frame = None
+            self.plot_canvas = None
+            self.plot_ax = None
+            self.plot_visible = False
+            self.resize_to_fit()
+            return
+       # 计算放置行：历史面板之后
+        if self.is_scientific:
+            base_last = 9   # 科学按钮最后一逻辑行索引参考
+            row_for_history = 10 if self.history_visible else None
+            row_for_plot = 11 if self.history_visible else 10
+            col_span = 6
+        else:
+            base_last = 7
+            row_for_history = 8 if self.history_visible else None
+            row_for_plot = 9 if self.history_visible else 8
+            col_span = 4
+        self.plot_frame = tk.Frame(self.root, bg="#f0f0f0")
+        self.plot_frame.grid(row=row_for_plot, column=0, columnspan=col_span,
+                            padx=10, pady=4, sticky="nsew")
+        self.root.rowconfigure(row_for_plot, weight=2)
+        # 控制栏
+        ctrl = tk.Frame(self.plot_frame, bg="#f0f0f0")
+        ctrl.pack(fill=tk.X)
+        tk.Label(ctrl, text="f(x) =", font=("Arial", 11), bg="#f0f0f0").pack(side=tk.LEFT)
+        self.plot_func_entry = tk.Entry(ctrl, font=("Arial", 11), width=20)
+        self.plot_func_entry.insert(0, "sin(x)")
+        self.plot_func_entry.pack(side=tk.LEFT, padx=5)
+        tk.Label(ctrl, text="范围 x_min,x_max:", font=("Arial", 11), bg="#f0f0f0").pack(side=tk.LEFT, padx=(6, 0))
+        self.plot_range_entry = tk.Entry(ctrl, font=("Arial", 11), width=12)
+        self.plot_range_entry.insert(0, "-10,10")
+        self.plot_range_entry.pack(side=tk.LEFT, padx=5)
+        tk.Button(ctrl, text="绘制", font=("Arial", 11),
+                 command=self.plot_function, bg="#4d94ff", fg="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(ctrl, text="关闭", font=("Arial", 11),
+                 command=self.show_plot_panel, bg="#9e9e9e", fg="white").pack(side=tk.LEFT, padx=5)
+        # 图像区域
+        fig = Figure(figsize=(5, 2.6), dpi=100)
+        self.plot_ax = fig.add_subplot(111)
+        self.plot_ax.grid(True, alpha=0.3)
+        self.plot_ax.set_title("函数图像", fontsize=11)
+        self.plot_canvas = FigureCanvasTkAgg(fig, master=self.plot_frame)
+        self.plot_canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        self.plot_visible = True
+        self.resize_to_fit()
+
+    def plot_function(self):
+        """绘制 y = f(x)"""
+        if not (self.plot_canvas and self.plot_ax):
+            return
+        expr_raw = (self.plot_func_entry.get() if self.plot_func_entry else "").strip()
+        rng = (self.plot_range_entry.get() if self.plot_range_entry else "").strip()
+        if not expr_raw:
+            messagebox.showerror("错误", "请输入函数表达式，例如 sin(x)")
+            return
+        try:
+            xmin_s, xmax_s = [s.strip() for s in rng.split(",")]
+            xmin, xmax = float(xmin_s), float(xmax_s)
+            if xmin >= xmax:
+                raise ValueError
+        except:
+            messagebox.showerror("错误", "范围格式应为: -10,10 且左小右大")
+            return
+        x = np.linspace(xmin, xmax, 1000)
+        # 处理表达式
+        expr = expr_raw.replace("^", "**").replace("π", "pi").replace("e", "e")
+        # 函数映射
+        if self.degree_mode:
+            sin = lambda v: np.sin(np.radians(v))
+            cos = lambda v: np.cos(np.radians(v))
+            tan = lambda v: np.tan(np.radians(v))
+        else:
+            sin, cos, tan = np.sin, np.cos, np.tan
+        env = {"__builtins__": None}
+        names = {
+            "x": x,
+            "sin": sin, "cos": cos, "tan": tan,
+            "log": np.log10, "ln": np.log,
+            "sqrt": np.sqrt, "abs": np.abs,
+            "exp": np.exp, "pow": np.power,
+            "pi": np.pi, "e": np.e
+       }
+        try:
+            y = eval(expr, env, names)
+        except Exception as ex:
+            messagebox.showerror("表达式错误", f"无法计算: {ex}")
+            return
+        self.plot_ax.clear()
+        self.plot_ax.grid(True, alpha=0.3)
+        self.plot_ax.plot(x, y, color="#1976d2")
+        self.plot_ax.set_xlabel("x")
+        self.plot_ax.set_ylabel("y")
+        self.plot_ax.set_title(f"y = {expr_raw}", fontsize=11)
+        self.plot_canvas.draw()
+        self.add_to_history(f"图像: y={expr_raw}  x∈[{xmin},{xmax}]", result=None)
     
     def clear_history(self, history_text=None):
         """清除历史记录"""
         self.history = []
-
+        self.refresh_history_panel()
         # 兼容旧参数，但优先使用内嵌面板的文本控件
         target = self.history_text if self.history_text else history_text
         if target and target.winfo_exists():
