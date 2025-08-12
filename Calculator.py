@@ -1,5 +1,6 @@
 import tkinter as tk
 import math
+import re
 
 class ScientificCalculator:
     def __init__(self, root):
@@ -155,7 +156,7 @@ class ScientificCalculator:
         
         # 科学计算器按钮布局
         sci_layout = [
-            ['sin', 'cos', 'tan', 'π', '(', ')'],
+            ['sin', 'cos', 'tan', 'π', 'nCk', 'nPk'],
             ['log', 'ln', 'e', 'x²', 'x³', '10^x'],
             ['C', '√', '^', '/', '⌫', 'rad/deg'],  # 将AC改为角度/弧度切换按钮
             ['7', '8', '9', '*', '(', ')'],
@@ -171,7 +172,7 @@ class ScientificCalculator:
                 bg_color = "SystemButtonFace"
                 if text in ('C', '⌫', '←'):
                     bg_color = "#ff9999"
-                elif text in ('sin', 'cos', 'tan', 'log', 'ln'):
+                elif text in ('sin', 'cos', 'tan', 'log', 'ln','nCk','nPk'):
                     bg_color = "#99ccff"
                 elif text == "=":
                     bg_color = "#4d94ff"
@@ -373,6 +374,10 @@ class ScientificCalculator:
             return
         elif value in ('sin', 'cos', 'tan', 'log', 'ln'):
             self.display_var.set(f"{value}({current})")
+        elif value == "nCk":
+            self.display_var.set(current+"C(")
+        elif value == "nPk":
+            self.display_var.set(current + "P(")
         elif value == "=":
             try:
                 expression = current  # 保存原始表达式
@@ -383,6 +388,19 @@ class ScientificCalculator:
                 # 兜底：如果还有 '√' 直接替换成 sqrt
                 safe_expr = safe_expr.replace("√", "sqrt")
 
+                def repl_comb(m):
+                    n, k = m.group(1), m.group(2)
+                    return f"comb({n},{k})"
+
+                def repl_perm(m):
+                    n, k = m.group(1), m.group(2)
+                    return f"perm({n},{k})"
+
+                safe_expr = expression
+                safe_expr = safe_expr.replace("^", "**").replace("π", "3.1415926535").replace("e", "2.7182818284").replace("√", "sqrt")
+                safe_expr = re.sub(r'(\d+)C\((\d+)\)', repl_comb, safe_expr)
+                safe_expr = re.sub(r'(\d+)P\((\d+)\)', repl_perm, safe_expr)
+
                 namespace = {
                     "__builtins__": None,
                     "sin": math.sin,
@@ -391,7 +409,9 @@ class ScientificCalculator:
                     "log": math.log10,
                     "ln": math.log,
                     "sqrt": math.sqrt,
-                    "exp": math.exp
+                    "exp": math.exp,
+                    "comb": (math.comb if hasattr(math, "comb") else self.combination),
+                    "perm": (math.perm if hasattr(math, "perm") else self.permutation)
                 }
 
                 if self.degree_mode:
@@ -404,19 +424,49 @@ class ScientificCalculator:
                     namespace["tan"] = wrap(math.tan)
 
                 result = eval(safe_expr, {}, namespace)
-                formatted = f"{result:.8f}".rstrip('0').rstrip('.')
-                final_result = formatted if '.' in formatted else str(int(result))
-                
+               # 3. 结果格式化
+                if isinstance(result, float):
+                    formatted = f"{result:.8f}".rstrip('0').rstrip('.')
+                    final_result = formatted if '.' in formatted else str(int(result))
+                else:
+                    final_result = str(result)
+
                 self.display_var.set(final_result)
-                self.add_to_history(expression, final_result)  # 添加到历史记录
+                self.add_to_history(expression, final_result)
+                if "C(" in current:
+                    n, k = self.parse_nk_function(current,"C")
+                    result = math.comb(n,k) if hasattr(math, 'comb') else self.combination(n, k)
+                    self.display_var.set(str(result))
+                    self.add_to_history(current, result)
+                    return
+                if "P(" in current:
+                    n, k = self.parse_nk_function(current, "P")
+                    result = math.perm(n, k) if hasattr(math, 'perm') else self.permutation(n, k)
+                    self.display_var.set(str(result))
+                    self.add_to_history(current, result)
+                    return 
+                
             except Exception as e:
                 self.display_var.set("错误")
+
         else:
             if value in ('+', '-', '*', '/') and current and current[-1] in ('+', '-', '*', '/'):
                 return
             if value == '.' and (current and '.' in current.split()[-1]):
                 return
             self.display_var.set(current + value)
+    def parse_nk_function(self, expr, func_type):
+        parts = expr.split(func_type + "(")
+        n = int(parts[0])
+        k = int(parts[1].rstrip(")"))
+        if k > n:
+            raise ValueError(f"k值({k})不能大于n值({n})")
+        return n, k
+    def combination(self, n, k):
+        return math.factorial(n)//(math.factorial(k)*math.factorial(n-k))
+    
+    def permutation(self, n, k):
+        return math.factorial(n)//math.factorial(n-k)
 
 # 主程序入口
 if __name__ == "__main__":
