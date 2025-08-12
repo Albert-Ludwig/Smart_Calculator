@@ -8,6 +8,7 @@ class ScientificCalculator:
         self.root.title("高级科学计算器")
         self.root.geometry("400x550")  # 增加高度以容纳历史记录
         self.root.configure(bg="#f0f0f0")
+        self.root.resizable(True, True)  # 允许调整
         
         # 角度模式设置（默认为角度模式）
         self.degree_mode = True
@@ -18,6 +19,12 @@ class ScientificCalculator:
         # 历史记录系统
         self.history = []  # 存储历史记录
         self.max_history = 20  # 最大历史记录数
+
+         # 新增：历史面板与模式状态初始化
+        self.is_scientific = False
+        self.history_frame = None
+        self.history_text = None
+        self.history_visible = False
         
         # 创建主计算器界面
         self.create_basic_calculator()
@@ -27,6 +34,8 @@ class ScientificCalculator:
         # 清除当前所有控件
         for widget in self.root.winfo_children():
             widget.destroy()
+        
+        self.is_scientific = False
         
         # 配置网格
         for i in range(10):  # 增加行数
@@ -89,12 +98,16 @@ class ScientificCalculator:
                 if text == "=":
                     btn.grid(row=row_idx + start_row, column=0, columnspan=4, 
                              sticky="nsew", padx=2, pady=2)
+        # 在基础界面创建完后自适应
+        self.resize_to_fit(min_w=400, min_h=520)
     
     def show_scientific_calculator(self):
         """显示科学计算器界面"""
         # 清除当前所有控件
         for widget in self.root.winfo_children():
             widget.destroy()
+
+        self.is_scientific = True
         
         # 配置科学计算器网格
         for i in range(10):  # 增加行数
@@ -171,6 +184,8 @@ class ScientificCalculator:
                     bg=bg_color,
                     fg="black" if bg_color == "SystemButtonFace" else "white"
                 )
+        # 在科学界面创建完后自适应
+        self.resize_to_fit(min_w=520, min_h=640)
     
     def create_button(self, text, row, col, bg="SystemButtonFace", fg="black"):
         """创建带样式的按钮"""
@@ -217,72 +232,102 @@ class ScientificCalculator:
         
         # 添加新记录
         self.history.append(f"{expression} = {result}")
+        
+    def resize_to_fit(self, min_w=380, min_h=520, extra_pad=(10, 10)):
+        """根据当前布局自动调整窗口大小"""
+        self.root.update_idletasks()  # 刷新布局计算
+        w = max(self.root.winfo_reqwidth(), min_w) + extra_pad[0]
+        h = max(self.root.winfo_reqheight(), min_h) + extra_pad[1]
+        self.root.geometry(f"{w}x{h}")
     
     def show_history(self):
         """显示历史记录窗口"""
-        history_window = tk.Toplevel(self.root)
-        history_window.title("计算历史记录")
-        history_window.geometry("400x400")
-        history_window.configure(bg="#f0f0f0")
-        
-        # 标题
-        title_label = tk.Label(
-            history_window, text="计算历史记录", 
-            font=("Arial", 16, "bold"), bg="#f0f0f0", pady=10
-        )
-        title_label.pack(fill=tk.X)
-        
-        # 滚动文本框显示历史记录
-        history_frame = tk.Frame(history_window, bg="#f0f0f0")
-        history_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-        
-        scrollbar = tk.Scrollbar(history_frame)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        history_text = tk.Text(
-            history_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
-            font=("Arial", 12), bg="white", padx=10, pady=10
-        )
-        history_text.pack(fill=tk.BOTH, expand=True)
-        scrollbar.config(command=history_text.yview)
-        
-        # 填充历史记录
-        if not self.history:
-            history_text.insert(tk.END, "暂无历史记录")
+        if self.history_visible and self.history_frame and self.history_frame.winfo_exists():
+            self.history_frame.destroy()
+            self.history_frame = None
+            self.history_text = None
+            self.history_visible = False
+            self.resize_to_fit()
+            return
+
+        # 计算面板应放置的位置与跨列
+        if self.is_scientific:
+            row_for_history = 10   # 科学布局按钮最后一行是 9，历史放 10
+            col_span = 6
         else:
-            for entry in reversed(self.history):  # 最新记录在顶部
-                history_text.insert(tk.END, entry + "\n")
-        
-        history_text.config(state=tk.DISABLED)  # 设置为只读
-        
+            row_for_history = 8    # 基础布局按钮最后一行是 7，历史放 8
+            col_span = 4
+
+        # 历史面板容器
+        self.history_frame = tk.Frame(self.root, bg="#f0f0f0")
+        self.history_frame.grid(row=row_for_history, column=0, columnspan=col_span,
+                                padx=10, pady=4, sticky="nsew")
+
+        # 让历史面板行无伸展权重
+        self.root.rowconfigure(row_for_history, weight=1)
+
+        # 标题
+        title = tk.Label(self.history_frame, text="计算历史记录",
+                         font=("Arial", 12, "bold"), bg="#f0f0f0")
+        title.pack(fill=tk.X, pady=(5, 3))
+
+        # 文本+滚动条
+        list_frame = tk.Frame(self.history_frame, bg="#f0f0f0")
+        list_frame.pack(fill=tk.BOTH, expand=True)
+
+        scrollbar = tk.Scrollbar(list_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.history_text = tk.Text(
+            list_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set,
+            font=("Arial", 11), bg="white", padx=8, pady=8, height=6
+        )
+        self.history_text.pack(fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.history_text.yview)
+
+        # 填充历史
+        if not self.history:
+            self.history_text.insert(tk.END, "暂无历史记录")
+        else:
+            for entry in reversed(self.history):
+                self.history_text.insert(tk.END, entry + "\n")
+        self.history_text.config(state=tk.DISABLED)
+
         # 底部按钮
-        button_frame = tk.Frame(history_window, bg="#f0f0f0", pady=10)
-        button_frame.pack(fill=tk.X, padx=10)
-        
-        # 清除历史按钮
-        clear_button = tk.Button(
-            button_frame, text="清除历史", font=("Arial", 12),
-            command=lambda: self.clear_history(history_text),
-            bg="#ff4444", fg="white", padx=15
-        )
-        clear_button.pack(side=tk.LEFT, padx=5)
-        
-        # 关闭窗口按钮
-        close_button = tk.Button(
-            button_frame, text="关闭", font=("Arial", 12),
-            command=history_window.destroy,
-            bg="#4d94ff", fg="white", padx=15
-        )
-        close_button.pack(side=tk.RIGHT, padx=5)
+        btn_bar = tk.Frame(self.history_frame, bg="#f0f0f0")
+        btn_bar.pack(fill=tk.X, pady=6)
+
+        # 平分两列
+        btn_bar.grid_columnconfigure(0, weight=1)
+        btn_bar.grid_columnconfigure(1, weight=1)
+
+        clear_btn = tk.Button(btn_bar, text="清除历史",
+                              font=("Arial", 10),
+                              command=self.clear_history,
+                              bg="#ff4444", fg="white")
+        clear_btn.grid(row=0, column=0, padx=6, pady=4, sticky="nsew", ipady=5)
+
+        close_btn = tk.Button(btn_bar, text="关闭",
+                              font=("Arial", 10),
+                              command=self.show_history,  # 再次调用以收起
+                              bg="#4d94ff", fg="white")
+        close_btn.grid(row=0, column=1, padx=6, pady=4, sticky="nsew", ipady=5)
+
+        self.history_visible = True
+        # 展开后自适应
+        self.resize_to_fit()
     
     def clear_history(self, history_text=None):
         """清除历史记录"""
         self.history = []
-        if history_text:
-            history_text.config(state=tk.NORMAL)
-            history_text.delete(1.0, tk.END)
-            history_text.insert(tk.END, "历史记录已清除")
-            history_text.config(state=tk.DISABLED)
+
+        # 兼容旧参数，但优先使用内嵌面板的文本控件
+        target = self.history_text if self.history_text else history_text
+        if target and target.winfo_exists():
+            target.config(state=tk.NORMAL)
+            target.delete(1.0, tk.END)
+            target.insert(tk.END, "历史记录已清除")
+            target.config(state=tk.DISABLED)
     
     def button_click(self, value):
         """处理所有按钮点击事件"""
