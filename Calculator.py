@@ -5,6 +5,8 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import messagebox
+import matplotlib as mpl
+from matplotlib import font_manager
 
 class ScientificCalculator:
     def __init__(self, root):
@@ -13,6 +15,7 @@ class ScientificCalculator:
         self.root.geometry("400x550")  # 增加高度以容纳历史记录
         self.root.configure(bg="#f0f0f0")
         self.root.resizable(True, True)  # 允许调整
+        self._setup_cn_font()
         
         # 角度模式设置（默认为角度模式）
         self.degree_mode = True
@@ -40,6 +43,23 @@ class ScientificCalculator:
         
         # 创建主计算器界面
         self.create_basic_calculator()
+
+    def _setup_cn_font(self):
+        """为 Matplotlib 选择可显示中文的字体"""
+        try:
+            candidates = ["Microsoft YaHei", "SimHei", "SimSun", "Noto Sans CJK SC", "PingFang SC"]
+            fam = None
+            installed = {f.name for f in font_manager.fontManager.ttflist}
+            for name in candidates:
+                if name in installed:
+                    fam = name
+                    break
+            if fam:
+                mpl.rcParams["font.sans-serif"] = [fam]
+            # 解决坐标轴负号显示为方块的问题
+            mpl.rcParams["axes.unicode_minus"] = False
+        except Exception:
+            mpl.rcParams["axes.unicode_minus"] = False
 
     def create_basic_calculator(self):
         """创建基础计算器界面"""
