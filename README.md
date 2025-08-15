@@ -1,1 +1,1 @@
-Smart Calculator 基于Python的只能计算器。
+Smart Calculator 基于Python的智能计算器。
