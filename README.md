@@ -1,1 +1,1 @@
-Smart Calculator 基于Python的智能计算器。
+This project was also completed during my 2025 summer co-op, where I developed an integrated intelligent calculator for a client. The project consisted of two parts: the portion I present here is the first part, which does not violate the confidentiality agreement. The second part—restricted by confidentiality—involved real-time retrieval of OPC-UA data (via the Dify plugin mentioned earlier), generating fitted curves, and producing visualized charts.
